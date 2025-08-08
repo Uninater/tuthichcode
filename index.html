@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Flappy Bird - Bản Web</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #70c5ce;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Arial', sans-serif;
+    }
+    canvas {
+      border: 2px solid #000;
+    }
+    #restartBtn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background-color: #ffcc00;
+      border: none;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="restartBtn">Chơi lại</button>
+  <canvas id="gameCanvas" width="288" height="512"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const restartBtn = document.getElementById('restartBtn');
+
+    // Tải ảnh
+    const bird = new Image();
+    bird.src = 'https://i.imgur.com/WvjK0XK.png';
+
+    const bg = new Image();
+    bg.src = 'https://i.imgur.com/6OKTtHJ.png';
+
+    const fg = new Image();
+    fg.src = 'https://i.imgur.com/ZP0lYfl.png';
+
+    const pipeTop = new Image();
+    pipeTop.src = 'https://i.imgur.com/wtKp7JI.png';
+
+    const pipeBottom = new Image();
+    pipeBottom.src = 'https://i.imgur.com/Z7bkTpz.png';
+
+    // Âm thanh
+    const flySound = new Audio('https://www.fesliyanstudios.com/play-mp3/387'); // bay
+    const hitSound = new Audio('https://www.fesliyanstudios.com/play-mp3/700'); // va chạm
+
+    let gap = 120;
+    let birdX = 50;
+    let birdY = 150;
+    let gravity = 1.5;
+    let velocity = 0;
+    let pipes = [];
+    let score = 0;
+    let gameOver = false;
+
+    pipes[0] = {
+      x: canvas.width,
+      y: Math.floor(Math.random() * -150),
+      scored: false
+    };
+
+    // Điều khiển
+    document.addEventListener("keydown", jump);
+    document.addEventListener("mousedown", jump);
+    restartBtn.addEventListener("click", resetGame);
+
+    function jump() {
+      if (!gameOver) {
+        velocity = -12;
+        flySound.play();
+      }
+    }
+
+    function draw() {
+      if (gameOver) return;
+
+      ctx.drawImage(bg, 0, 0);
+
+      for (let i = 0; i < pipes.length; i++) {
+        let p = pipes[i];
+        ctx.drawImage(pipeTop, p.x, p.y);
+        ctx.drawImage(pipeBottom, p.x, p.y + pipeTop.height + gap);
+
+        p.x -= 2;
+
+        // Sinh pipe mới
+        if (p.x === 130) {
+          pipes.push({
+            x: canvas.width,
+            y: Math.floor(Math.random() * -150),
+            scored: false
+          });
+        }
+
+        // Kiểm tra va chạm
+        if (
+          birdX + bird.width >= p.x &&
+          birdX <= p.x + pipeTop.width &&
+          (birdY <= p.y + pipeTop.height || birdY + bird.height >= p.y + pipeTop.height + gap)
+        ) {
+          gameOver = true;
+          hitSound.play();
+          restartBtn.style.display = "block";
+          return;
+        }
+
+        // Cộng điểm
+        if (!p.scored && p.x + pipeTop.width < birdX) {
+          score++;
+          p.scored = true;
+        }
+      }
+
+      // Vẽ nền dưới
+      ctx.drawImage(fg, 0, canvas.height - fg.height);
+
+      // Vẽ chim
+      ctx.drawImage(bird, birdX, birdY);
+
+      // Trọng lực
+      velocity += gravity;
+      birdY += velocity;
+
+      // Chim chạm đất
+      if (birdY + bird.height >= canvas.height - fg.height) {
+        gameOver = true;
+        hitSound.play();
+        restartBtn.style.display = "block";
+        return;
+      }
+
+      // Hiển thị điểm
+      ctx.fillStyle = "#000";
+      ctx.font = "24px Arial";
+      ctx.fillText("Điểm: " + score, 10, canvas.height - 20);
+
+      requestAnimationFrame(draw);
+    }
+
+    bird.onload = draw;
+
+    function resetGame() {
+      birdY = 150;
+      velocity = 0;
+      pipes = [{
+        x: canvas.width,
+        y: Math.floor(Math.random() * -150),
+        scored: false
+      }];
+      score = 0;
+      gameOver = false;
+      restartBtn.style.display = "none";
+      draw();
+    }
+  </script>
+
+</body>
+</html>
